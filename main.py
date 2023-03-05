@@ -14,7 +14,6 @@ win.geometry("400x400")
 
 
 def encrypt_file(file_path, key):
-    # key = key.encode('utf-8')
     print(key)
     # Define the AES cipher object
     # Generate a random nonce and counter
@@ -29,18 +28,12 @@ def encrypt_file(file_path, key):
 
     # Encrypt the data
     ciphertext, tag = cipher.encrypt_and_digest(data)
-    # Encrypt the file contents
-    # encrypted_data, tag = cipher.encrypt_and_digest(file_contents)
 
     # Write the encrypted data and tag to the output file
     with open(file_path, "wb") as f:
         f.write(nonce)
         f.write(ciphertext)
         f.write(tag)
-        # [f.write(x) for x in (cipher.nonce, tag, encrypted_data)]
-
-    return cipher.nonce, tag
-    # [f.write(x) for x in (cipher.nonce, tag, encrypted_data)]
 
 
 def decrypt_file(file_path, key):
@@ -52,7 +45,6 @@ def decrypt_file(file_path, key):
         ciphertext = ciphertext[:-16]
 
     # Create the AES cipher object with a 256-bit key and GCM mode
-    # counter = Counter.new(128, initial_value=0)
     cipher = AES.new(key, AES.MODE_EAX, nonce=nonce)
 
     # Decrypt the ciphertext and verify the authentication tag
