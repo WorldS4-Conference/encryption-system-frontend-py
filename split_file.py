@@ -1,7 +1,8 @@
 import os
+import tkinter
 
 
-def split_file(file_path, block_size):
+def split_file(file_path, block_size, process_status_listbox):
     # List of the blocks
     block_paths = []
 
@@ -19,8 +20,11 @@ def split_file(file_path, block_size):
         # Get file name and extension
         filename, extension = os.path.splitext(file_path)
         filename = filename.split('/')[-1]
-        directory_path = os.path.split(file_path)[0]
-        print(directory_path)
+        # directory_path = os.path.split(file_path)[0]
+        directory_path = os.path.dirname(os.path.abspath(__file__)) + "/chunks"
+        # print("hi", directory_path)
+
+        process_status_listbox.insert(tkinter.END, "***** Temporary storing the chunks")
 
         for i in range(num_chunks + 1):
 
@@ -42,7 +46,9 @@ def split_file(file_path, block_size):
                 f.seek(block_size * (i + 1))
 
             print(f"Wrote chunk file {block_file_name} ({len(chunk_data)} bytes)")
+            process_status_listbox.insert(tkinter.END, f"Wrote chunk file {block_file_name} ({len(chunk_data)} bytes)")
 
     print("Finished splitting file into chunks")
+    process_status_listbox.insert(tkinter.END, "Finished splitting file into chunks")
 
     return block_paths
