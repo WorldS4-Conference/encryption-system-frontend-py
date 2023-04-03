@@ -1,0 +1,10 @@
+('/usr/local/lib/python3.8/dist-packages/pyparsing-2.4.0-py3.8.egg',
+ None,
+ {'*.abi3.so',
+  '*.cpython-38-x86_64-linux-gnu.so',
+  '*.py',
+  '*.pyc',
+  '*.so',
+  'EGG-INFO'},
+ 'DATA',
+ [])

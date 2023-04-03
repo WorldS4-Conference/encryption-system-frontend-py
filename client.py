@@ -1,3 +1,4 @@
+import binascii
 from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
@@ -14,7 +15,7 @@ class Client:
     def __init__(self, win, username="Soham Shinde", email="soham2019@iiitkottayam.ac.in"):
         win.title("Client")
         win.config(bg="white")
-        win.geometry("670x400")
+        win.geometry("670x700")
 
         # Load and resize the avatar image
         avatar_image = Image.open("assets/icons/avatar.png").resize((50, 50), Image.LANCZOS)
@@ -28,10 +29,26 @@ class Client:
                                      borderwidth=0,
                                      font=("Helvetica", 12), anchor='w')
 
-        self.title = Label(win, text='CipherHorizon Client', bg="light yellow", fg="blue", borderwidth=0,
+        self.title = Label(win, text='CipherHorizon', bg="light yellow", fg="blue", borderwidth=0,
                            font=("Helvetica", 18, "italic", "bold"), anchor='center')
 
-        self.btn = Button(win, text="Select File", command=self.fun)
+        self.upload_label = Label(win, text='Upload', bg="white", borderwidth=0,
+                                  font=("Helvetica", 12, "bold"), anchor='center')
+
+        self.download_label = Label(win, text='Download', bg="white", borderwidth=0,
+                                    font=("Helvetica", 12, "bold"), anchor='center')
+        self.frame = Frame(win, background="white")
+
+        self.download_path_label = Label(self.frame, state='disabled', anchor='w', background='white',
+                                         foreground="blue")
+        self.input_box2 = Entry(self.frame)
+        self.input_box3 = Entry(self.frame)
+
+
+        self.download_path_btn = Button(self.frame, text="Select Path", command=self.select_directory)
+        self.download_btn = Button(self.frame, text="Download", command=self.downloadFile)
+
+        self.btn = Button(win, text="Select File", command=self.uploadFile)
 
         self.process_status_listbox = Listbox(win, bg="white", fg="black", font=("Helvetica", 13), width=65,
                                               selectmode="multiple")
@@ -49,14 +66,46 @@ class Client:
         # self.avatar_label.pack(side=LEFT, padx=10, pady=10)
         self.user_info_name.pack(side=TOP, padx=10, anchor='w')
         self.user_info_email.pack(side=TOP, padx=10, anchor='w')
+        ttk.Separator(win, orient=HORIZONTAL).pack(fill=X)
+
+        self.upload_label.pack(side=TOP, padx=10, anchor='w')
         self.btn.pack(side=TOP, pady=5)
+
+        ttk.Separator(win, orient=HORIZONTAL).pack(fill=X)
+        self.download_label.pack(side=TOP, padx=10, anchor='w')
+        self.frame.pack(side=TOP, fill=X)
+        # self.input_box1.pack(side=LEFT, fill=X, expand=1)
+        # self.download_btn.pack(side=LEFT)
+        # self.input_box2.pack(side=LEFT, fill=X, expand=1)
+        self.download_path_label.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        self.input_box2.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
+        self.input_box3.grid(row=2, column=0, columnspan=1, sticky="ew", padx=5, pady=5)
+
+        self.download_path_btn.grid(row=0, column=1, rowspan=1, sticky="ns", padx=0, pady=5)
+        self.download_btn.grid(row=1, column=1, rowspan=1, sticky="ns", padx=0, pady=5)
+
+        # Configure the columns and rows to resize properly
+        self.frame.columnconfigure(0, weight=1)
+        self.frame.columnconfigure(1, weight=0)
+        self.frame.rowconfigure(0, weight=1)
+        self.frame.rowconfigure(1, weight=1)
+
+        self.frame.pack(side=TOP, fill=X)
+
         self.yscrollbar.pack(side=RIGHT, fill=Y)
         self.xscrollbar.pack(side=BOTTOM, fill=X)
         self.process_status_listbox.pack(side=TOP, fill=BOTH, expand=1)
 
         win.mainloop()
 
-    def fun(self):
+    def select_directory(self):
+        # Show the file dialog and get the selected directory
+        directory = filedialog.askdirectory()
+
+        # Set the text of the label to the selected directory
+        self.download_path_label.config(text=directory)
+
+    def uploadFile(self):
 
         # Asking User for file input
         file_path = filedialog.askopenfile()
@@ -135,7 +184,27 @@ class Client:
         # return
 
         if checkTags(encrypted_hashes) == 'False':
+            self.process_status_listbox.insert(tkinter.END, "File not present in the server")
             uploadFile(block_paths, encrypted_hashes, self.process_status_listbox)
+        else:
+            self.process_status_listbox.insert(tkinter.END, "File present in the server")
+
+    def downloadFile(self):
+        hash_value = self.input_box2.get()
+
+        print(hash_value)
+        url = base_url + 'api/download/'
+        response = requests.post(url, data={'tag': hash_value})
+        file_name = response.headers.get('Content-Disposition').split('filename=')[1]
+        block_path = 'chunks/' + file_name.strip('"')
+        with open(block_path, 'wb') as f:
+            f.write(response.content)
+
+        # Convert a hexadecimal string to its corresponding hash value
+        hash_value = self.input_box3.get() # "793ba7ea3565921d5550ee5a9c16fe4ed71564635361b610ad64234c08365c45"
+        hash_value = bytes.fromhex(hash_value)
+
+        decrypt_file(block_path, hash_value)
 
 
 if __name__ == '__main__':

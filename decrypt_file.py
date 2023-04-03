@@ -19,7 +19,6 @@ def decrypt_file(file_path, key):
         # tag = ciphertext[-16:]
         # ciphertext = ciphertext[:-16]
 
-
     # Create the AES cipher object with a 256-bit key and GCM mode
     cipher = AES.new(key, AES.MODE_CBC, iv)
 
@@ -31,7 +30,6 @@ def decrypt_file(file_path, key):
     # Write the decrypted data to the output file
     with open(file_path, 'wb') as file:
         file.write(plaintext)
-
 
     # end_time = datetime.datetime.now()
 

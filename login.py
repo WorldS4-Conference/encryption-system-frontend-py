@@ -79,8 +79,8 @@ class LoginWindow:
         response = requests.post(login_url, data=data)
         if response.status_code == 200:
             # Login successful
-            auth_token = response.json()['auth_token']
-            # Display a message indicating that the user has successfully logged in
+            # auth_token = response.json()['user_id']
+            # Display a message indicating that the u   ser has successfully logged in
             self.error_label.configure(text="Success, " + "You have successfully logged in.")
 
             # Perform login validation
