@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
+from PIL import Image, ImageTk
 
 from decrypt_file import *
 from encrypt_file import *
@@ -10,12 +11,24 @@ from utils import *
 
 
 class Client:
-    def __init__(self, win):
+    def __init__(self, win, username="Soham Shinde", email="soham2019@iiitkottayam.ac.in"):
         win.title("Client")
         win.config(bg="white")
         win.geometry("670x400")
 
-        self.title = Label(win, text='Sash Client', bg="light yellow", fg="blue", borderwidth=0,
+        # Load and resize the avatar image
+        avatar_image = Image.open("assets/icons/avatar.png").resize((50, 50), Image.LANCZOS)
+        self.avatar = ImageTk.PhotoImage(avatar_image)
+
+        # self.avatar_label = Label(win, image=avatar_image)
+
+        self.user_info_name = Label(win, text=f'User: {username}', bg="white", fg="black", borderwidth=0,
+                                    font=("Helvetica", 12), anchor='w')
+        self.user_info_email = Label(win, text=f'Email: {email}', bg="white", fg="black",
+                                     borderwidth=0,
+                                     font=("Helvetica", 12), anchor='w')
+
+        self.title = Label(win, text='CipherHorizon Client', bg="light yellow", fg="blue", borderwidth=0,
                            font=("Helvetica", 18, "italic", "bold"), anchor='center')
 
         self.btn = Button(win, text="Select File", command=self.fun)
@@ -33,6 +46,9 @@ class Client:
 
         # Pack the widgets
         self.title.pack(side=TOP, fill=X, pady=10)
+        # self.avatar_label.pack(side=LEFT, padx=10, pady=10)
+        self.user_info_name.pack(side=TOP, padx=10, anchor='w')
+        self.user_info_email.pack(side=TOP, padx=10, anchor='w')
         self.btn.pack(side=TOP, pady=5)
         self.yscrollbar.pack(side=RIGHT, fill=Y)
         self.xscrollbar.pack(side=BOTTOM, fill=X)
@@ -113,13 +129,13 @@ class Client:
 
         # Decrypting the blocks
 
-        for block_path, hash in zip(block_paths, hashes):
-            decrypt_file(block_path, hash)
+        # for block_path, hash in zip(block_paths, hashes):
+        #     decrypt_file(block_path, hash)
 
-        return
+        # return
 
         if checkTags(encrypted_hashes) == 'False':
-            uploadFile(block_paths, encrypted_hashes, process_status_listbox)
+            uploadFile(block_paths, encrypted_hashes, self.process_status_listbox)
 
 
 if __name__ == '__main__':
