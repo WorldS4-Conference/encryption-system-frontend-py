@@ -1,12 +1,18 @@
-import binascii
+import base64
+import json
+import re
 from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
+import time
+import datetime
+
 from PIL import Image, ImageTk
 
-from decrypt_file import *
+from decrypt_file import decrypt_file
 from encrypt_file import *
 from hash_file import *
+from join_file import join_files
 from split_file import *
 from utils import *
 
@@ -14,8 +20,11 @@ from utils import *
 class Client:
     def __init__(self, win, username="Soham Shinde", email="soham2019@iiitkottayam.ac.in"):
         win.title("Client")
+        self.email = email
+        self.username = username
         win.config(bg="white")
         win.geometry("670x700")
+        self.downloaded_file_paths = []
 
         # Load and resize the avatar image
         avatar_image = Image.open("assets/icons/avatar.png").resize((50, 50), Image.LANCZOS)
@@ -35,18 +44,23 @@ class Client:
         self.upload_label = Label(win, text='Upload', bg="white", borderwidth=0,
                                   font=("Helvetica", 12, "bold"), anchor='center')
 
+        self.policy_entry = Entry(win)
+
         self.download_label = Label(win, text='Download', bg="white", borderwidth=0,
                                     font=("Helvetica", 12, "bold"), anchor='center')
         self.frame = Frame(win, background="white")
 
         self.download_path_label = Label(self.frame, state='disabled', anchor='w', background='white',
                                          foreground="blue")
-        self.input_box2 = Entry(self.frame)
-        self.input_box3 = Entry(self.frame)
-
+        self.accessId_entry = Entry(self.frame)
+        self.attributes_entry = Entry(self.frame)
+        self.hash_entry = Text(self.frame, height=5)
+        self.hash_entry_scroll = Scrollbar(self.frame, command=self.hash_entry.yview)
+        self.hash_entry.configure(yscrollcommand=self.hash_entry_scroll.set)
+        self.encrypt_btn = Button(self.frame, text="   Encrypt  ", command=self.encrypt)
 
         self.download_path_btn = Button(self.frame, text="Select Path", command=self.select_directory)
-        self.download_btn = Button(self.frame, text="Download", command=self.downloadFile)
+        self.download_btn = Button(self.frame, text=" Download ", command=self.downloadFile)
 
         self.btn = Button(win, text="Select File", command=self.uploadFile)
 
@@ -69,6 +83,7 @@ class Client:
         ttk.Separator(win, orient=HORIZONTAL).pack(fill=X)
 
         self.upload_label.pack(side=TOP, padx=10, anchor='w')
+        self.policy_entry.pack(side=TOP, fill=X)
         self.btn.pack(side=TOP, pady=5)
 
         ttk.Separator(win, orient=HORIZONTAL).pack(fill=X)
@@ -78,10 +93,13 @@ class Client:
         # self.download_btn.pack(side=LEFT)
         # self.input_box2.pack(side=LEFT, fill=X, expand=1)
         self.download_path_label.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        self.input_box2.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
-        self.input_box3.grid(row=2, column=0, columnspan=1, sticky="ew", padx=5, pady=5)
+        self.accessId_entry.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
+        self.attributes_entry.grid(row=2, column=0, columnspan=1, sticky="ew", padx=5, pady=5)
+        self.hash_entry.grid(row=3, sticky=W + E, column=0, padx=5, pady=5)
+        self.hash_entry_scroll.grid(row=3, sticky=E + N + S, column=0, padx=5, pady=5)
+        self.encrypt_btn.grid(row=3, sticky=N, column=1, padx=0, pady=5)
 
-        self.download_path_btn.grid(row=0, column=1, rowspan=1, sticky="ns", padx=0, pady=5)
+        self.download_path_btn.grid(row=0, column=1, rowspan=1, sticky="ns", padx=5, pady=5)
         self.download_btn.grid(row=1, column=1, rowspan=1, sticky="ns", padx=0, pady=5)
 
         # Configure the columns and rows to resize properly
@@ -117,7 +135,7 @@ class Client:
 
         print(file_path)
 
-        self.process_status_listbox.insert(tkinter.END, "***** Block size  = " + str(block_size) + "bytes");
+        self.process_status_listbox.insert(tkinter.END, "***** Block size  = " + str(block_size) + "bytes")
 
         # Splitting the file into blocks and storing the paths to the same
         self.process_status_listbox.insert(tkinter.END, "***** Splitting the file")
@@ -181,30 +199,113 @@ class Client:
         # for block_path, hash in zip(block_paths, hashes):
         #     decrypt_file(block_path, hash)
 
+        response = checkTags(encrypted_hashes, self.email)
+        policy = self.policy_entry.get()
         # return
+        print(type(response['exists']))
+        if not response['exists']:
+            print("hi")
+            self.process_status_listbox.insert(tkinter.END, "***** ERROR : File not present in the server")
+            self.process_status_listbox.insert(tkinter.END, "***** Uploading File to the server")
+            result = uploadFile(block_paths, encrypted_hashes, self.process_status_listbox, response['accessId'],
+                                policy)
 
-        if checkTags(encrypted_hashes) == 'False':
-            self.process_status_listbox.insert(tkinter.END, "File not present in the server")
-            uploadFile(block_paths, encrypted_hashes, self.process_status_listbox)
+            if result == 0:
+                self.process_status_listbox.insert(tkinter.END, "***** AccessID for the file = " + response['accessId'])
         else:
             self.process_status_listbox.insert(tkinter.END, "File present in the server")
 
     def downloadFile(self):
-        hash_value = self.input_box2.get()
-
-        print(hash_value)
+        accessId = self.accessId_entry.get()
+        print(accessId)
         url = base_url + 'api/download/'
-        response = requests.post(url, data={'tag': hash_value})
-        file_name = response.headers.get('Content-Disposition').split('filename=')[1]
-        block_path = 'chunks/' + file_name.strip('"')
-        with open(block_path, 'wb') as f:
-            f.write(response.content)
+        attributes = self.attributes_entry.get()
+        self.process_status_listbox.insert(tkinter.END, "***** Requesting files to the server")
+
+        start_time = datetime.datetime.now()
+        response = requests.post(url, data={'accessId': accessId, 'attributes': attributes})
+        end_time = datetime.datetime.now()
+
+        if response.status_code == 200:
+            # self.process_status_listbox.insert(tkinter.END, "***** SUCCESS : Downloading files successful")
+            time_taken = end_time - start_time
+            size_in_bytes = float(len(response.content))
+            speed_in_bytes_per_sec = size_in_bytes / time_taken.total_seconds()
+            speed_in_bytes_per_sec = ((speed_in_bytes_per_sec/1024)/1024)
+            speed_in_bytes_per_sec = round(speed_in_bytes_per_sec, 2)
+            json_data = response.json()
+            json_data = json.loads(json_data)
+            # print(json_data)
+
+            # decode base64 string back into bytes
+            data = {}
+            for key, value in json_data.items():
+                data[key] = base64.b64decode(value.encode('utf-8'))
+
+            # Write binary data to files
+            for key, value in data.items():
+                self.downloaded_file_paths.append("downloaded_chunks/" + key)
+                with open("downloaded_chunks/" + key, 'wb') as file:
+                    file.write(value)
+
+            self.process_status_listbox.insert(tkinter.END, "***** SUCCESS : Downloaded files successfully at " + str(speed_in_bytes_per_sec) + " MB/S")
+            self.process_status_listbox.insert(tkinter.END, "***** Enter the hashes to decrypt the file : ")
+
+        else:
+            json_data = response.json()
+            # json_data = json.loads(json_data)
+            print(json_data)
+            self.process_status_listbox.insert(tkinter.END, "***** Message from server : " + json_data['error'])
+
+        # print(data)
+
+        # for file_name, file_content in data:
+        #     print(file_name)
+        #     print(file_content)
+
+        # file_name = response.headers.get('Content-Disposition').split('filename=')[1]
+        # block_path = 'chunks/' + file_name.strip('"')
+        # with open(block_path, 'wb') as f:
+        #     f.write(response.content)
 
         # Convert a hexadecimal string to its corresponding hash value
-        hash_value = self.input_box3.get() # "793ba7ea3565921d5550ee5a9c16fe4ed71564635361b610ad64234c08365c45"
-        hash_value = bytes.fromhex(hash_value)
+        # accessId = self.attributes_entry.get()  # "793ba7ea3565921d5550ee5a9c16fe4ed71564635361b610ad64234c08365c45"
+        # accessId = bytes.fromhex(accessId)
+        #
+        # decrypt_file(block_path, accessId)
 
-        decrypt_file(block_path, hash_value)
+    def encrypt(self):
+        if str(self.hash_entry.get(1.0, END)).isspace():
+            self.process_status_listbox.insert(tkinter.END, "***** ERROR : Enter the hashes")
+        elif self.download_path_label.cget('text') == '':
+            self.process_status_listbox.insert(tkinter.END, "***** ERROR : Select the destination path")
+        else:
+            self.process_status_listbox.insert(tkinter.END, "***** Decrypting the chunks")
+            try:
+                hash_content = self.hash_entry.get('1.0', END)
+                print(hash_content)
+                destination_path = self.download_path_label.cget('text')
+                print(destination_path)
+                hash_list = hash_content.split('\n')
+
+                for hash in hash_list:
+                    hash = hash.strip()
+
+                for hash, file_path in zip(hash_list, self.downloaded_file_paths):
+                    key = bytes.fromhex(hash)
+                    decrypt_file(file_path, key)
+                self.process_status_listbox.insert(tkinter.END, "***** SUCCESS: " + "Decryption Successful")
+                print(self.downloaded_file_paths)
+
+                self.process_status_listbox.insert(tkinter.END, "***** Joining the chunks")
+                file_name = re.sub('_part_\d+', '', self.downloaded_file_paths[0])
+                file_name = os.path.basename(file_name)
+
+                join_files(self.downloaded_file_paths, destination_path + "/" + file_name)
+                self.process_status_listbox.insert(tkinter.END, "***** SUCCESS: " + "Joining Successful")
+
+            except Exception as e:
+                self.process_status_listbox.insert(tkinter.END, "***** ERROR: " + str(e.args[0]))
 
 
 if __name__ == '__main__':

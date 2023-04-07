@@ -9,7 +9,7 @@ def unpad(data):
     return data[:-data[-1]]
 
 
-def decrypt_file(file_path, key):
+def decrypt_file(file_path, key, output_path=None):
     print("decrypting")
     # start_time = datetime.datetime.now()
     # Read the nonce, ciphertext, and tag from the encrypted file
@@ -28,7 +28,7 @@ def decrypt_file(file_path, key):
     plaintext = unpad(plaintext)
 
     # Write the decrypted data to the output file
-    with open(file_path, 'wb') as file:
+    with open(output_path if output_path is not None else file_path, 'wb') as file:
         file.write(plaintext)
 
     # end_time = datetime.datetime.now()

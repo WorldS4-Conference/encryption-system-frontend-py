@@ -1,54 +1,20 @@
 import os
-import tkinter
 
 
-def split_file(file_path, block_size, process_status_listbox):
-    # List of the blocks
-    block_paths = []
+def join_files(file_paths, output_file_path):
+    # Open the output file for writing
+    with open(output_file_path, 'wb') as output_file:
+        # Iterate over the input files
+        for file_path in file_paths:
+            # Open the input file
+            with open(file_path, 'rb') as input_file:
+                # Read the file contents and write them to the output file
+                file_contents = input_file.read()
+                output_file.write(file_contents)
 
-    # Get the size of the file
-    file_size = os.path.getsize(file_path)
+            # Delete the input file
+            # os.remove(file_path)
 
-    # Calculate the number of chunks
-    num_chunks = file_size // block_size
-    if file_size % block_size != 0:
-        num_chunks += 1
+            print(f"Deleted file {file_path}")
 
-    # Open the input file
-    with open(file_path, 'rb') as f:
-
-        # Get file name and extension
-        filename, extension = os.path.splitext(file_path)
-        filename = filename.split('/')[-1]
-        # directory_path = os.path.split(file_path)[0]
-        directory_path = os.path.dirname(os.path.abspath(__file__)) + "/chunks"
-        # print("hi", directory_path)
-
-        process_status_listbox.insert(tkinter.END, "***** Temporary storing the chunks")
-
-        for i in range(num_chunks + 1):
-
-            # Create the chunk file name
-            block_file_name = directory_path + "/" + filename + f"_part_{i + 1}" + extension
-            block_paths.append(block_file_name)
-
-            # Open the output chunk file
-            with open(block_file_name, 'wb') as chunk_file:
-                # Read and write the chunk data
-                chunk_data = f.read(block_size)
-                chunk_file.write(chunk_data)
-
-                # Stop reading if we've reached the end of the file
-                if not chunk_data:
-                    break
-
-                # Move the file pointer to the next chunk
-                f.seek(block_size * (i + 1))
-
-            print(f"Wrote chunk file {block_file_name} ({len(chunk_data)} bytes)")
-            process_status_listbox.insert(tkinter.END, f"Wrote chunk file {block_file_name} ({len(chunk_data)} bytes)")
-
-    print("Finished splitting file into chunks")
-    process_status_listbox.insert(tkinter.END, "Finished splitting file into chunks")
-
-    return block_paths
+    print(f"Finished joining files into {output_file_path}")

@@ -5,7 +5,7 @@ import requests
 from constants import base_url
 
 
-def checkTags(tags):
+def checkTags(tags, email):
     url = base_url + 'api/check_tags/'
 
     hexed_tags = []
@@ -13,13 +13,13 @@ def checkTags(tags):
     for tag in tags:
         hexed_tags.append(tag.hex())
 
-    response = requests.post(url, data=[("tags", hexed_tags)])
-    print(response.text)
-    return response.text
+    response = requests.post(url, data=[("tags", hexed_tags), ('email', email)])
+    print(response.json())
+    return response.json()
     # print(response)
 
 
-def uploadFile(block_paths, encrypted_hashes, process_status_listbox):
+def uploadFile(block_paths, encrypted_hashes, process_status_listbox, accessId, policy='(((FINANCE and (SENIOR or MANAGER)) or (HR and MANAGER)))'):
     # Define the URL endpoint for the file upload
     url = base_url + 'api/upload/'
 
@@ -27,7 +27,8 @@ def uploadFile(block_paths, encrypted_hashes, process_status_listbox):
     for block_path, encrypted_hash in zip(block_paths, encrypted_hashes):
         with open(block_path, 'rb') as file:
             # Create a dictionary of any additional form data to be sent
-            data = {'tag': encrypted_hash.hex()}
+            data = {'tag': encrypted_hash.hex(), 'accessId': accessId,
+                    'policy': policy}
 
             # Create the HTTP request with the file and form data
             response = requests.post(url, data=data, files={'file': file})
@@ -35,7 +36,9 @@ def uploadFile(block_paths, encrypted_hashes, process_status_listbox):
 
     # Check the response from the server
     if response.status_code == requests.codes.ok:
-        process_status_listbox.insert(tkinter.END, 'File uploaded successfully.')
+        process_status_listbox.insert(tkinter.END, '***** File uploaded successfully.')
+        return 0
     else:
-        process_status_listbox.insert(tkinter.END, 'Error uploading file:', response.text)
+        process_status_listbox.insert(tkinter.END, '***** Error uploading file:', response.text)
+        return 1
     pass
