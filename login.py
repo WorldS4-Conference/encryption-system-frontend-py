@@ -3,10 +3,11 @@ from client import *
 from constants import *
 
 
-def open_main_window(user_id):
+def open_main_window(name, email):
     # self.master.destroy()
     root = Tk()
-    Client(root, user_id)
+    print("hi", name, email)
+    Client(root, name, email)
     root.mainloop()
 
 
@@ -77,6 +78,8 @@ class LoginWindow:
         login_url = 'http://127.0.0.1:8000/api/login/'
         data = {'email': username, 'password': password}
         response = requests.post(login_url, data=data)
+        data = response.json()
+        print(data)
         if response.status_code == 200:
             # Login successful
             # auth_token = response.json()['user_id']
@@ -85,17 +88,15 @@ class LoginWindow:
 
             # Perform login validation
             self.master.destroy()
-            open_main_window(username)
+            open_main_window(data['name'], data['email'])
             # Do something with the auth_token, such as store it for future requests
         else:
             # Login failed
-            # reponse  = (response.json())
+            # response = (response.json())
             # print(response)
             self.error_label.configure(text=response.json()['message'])
 
             print('Login failed. Status code:', response.status_code)
-
-
 
 
 if __name__ == '__main__':

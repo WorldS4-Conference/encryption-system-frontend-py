@@ -57,7 +57,7 @@ class Client:
         self.hash_entry = Text(self.frame, height=5)
         self.hash_entry_scroll = Scrollbar(self.frame, command=self.hash_entry.yview)
         self.hash_entry.configure(yscrollcommand=self.hash_entry_scroll.set)
-        self.encrypt_btn = Button(self.frame, text="   Encrypt  ", command=self.encrypt)
+        self.decrypt_btn = Button(self.frame, text="   Decrypt  ", command=self.encrypt)
 
         self.download_path_btn = Button(self.frame, text="Select Path", command=self.select_directory)
         self.download_btn = Button(self.frame, text=" Download ", command=self.downloadFile)
@@ -97,7 +97,7 @@ class Client:
         self.attributes_entry.grid(row=2, column=0, columnspan=1, sticky="ew", padx=5, pady=5)
         self.hash_entry.grid(row=3, sticky=W + E, column=0, padx=5, pady=5)
         self.hash_entry_scroll.grid(row=3, sticky=E + N + S, column=0, padx=5, pady=5)
-        self.encrypt_btn.grid(row=3, sticky=N, column=1, padx=0, pady=5)
+        self.decrypt_btn.grid(row=3, sticky=N, column=1, padx=0, pady=5)
 
         self.download_path_btn.grid(row=0, column=1, rowspan=1, sticky="ns", padx=5, pady=5)
         self.download_btn.grid(row=1, column=1, rowspan=1, sticky="ns", padx=0, pady=5)
@@ -124,6 +124,11 @@ class Client:
         self.download_path_label.config(text=directory)
 
     def uploadFile(self):
+        policy = self.policy_entry.get()
+
+        if policy == "":
+            self.process_status_listbox.insert(tkinter.END, "***** Policy not entered")
+            return
 
         # Asking User for file input
         file_path = filedialog.askopenfile()
@@ -199,13 +204,12 @@ class Client:
         # for block_path, hash in zip(block_paths, hashes):
         #     decrypt_file(block_path, hash)
 
-        response = checkTags(encrypted_hashes, self.email)
-        policy = self.policy_entry.get()
+        response = checkTags(encrypted_hashes, self.email, block_paths)
         # return
         print(type(response['exists']))
         if not response['exists']:
-            print("hi")
-            self.process_status_listbox.insert(tkinter.END, "***** ERROR : File not present in the server")
+            print("Not present in server")
+            self.process_status_listbox.insert(tkinter.END, "***** Message from Server  : File not present in the server")
             self.process_status_listbox.insert(tkinter.END, "***** Uploading File to the server")
             result = uploadFile(block_paths, encrypted_hashes, self.process_status_listbox, response['accessId'],
                                 policy)
@@ -213,7 +217,10 @@ class Client:
             if result == 0:
                 self.process_status_listbox.insert(tkinter.END, "***** AccessID for the file = " + response['accessId'])
         else:
-            self.process_status_listbox.insert(tkinter.END, "File present in the server")
+            print("Not present in server")
+            self.process_status_listbox.insert(tkinter.END, "***** Message from Server : File present in the server")
+            self.process_status_listbox.insert(tkinter.END, "***** Duplication Avoided")
+            self.process_status_listbox.insert(tkinter.END, "***** AccessID for the file = " + response['accessId'])
 
     def downloadFile(self):
         accessId = self.accessId_entry.get()
@@ -231,7 +238,7 @@ class Client:
             time_taken = end_time - start_time
             size_in_bytes = float(len(response.content))
             speed_in_bytes_per_sec = size_in_bytes / time_taken.total_seconds()
-            speed_in_bytes_per_sec = ((speed_in_bytes_per_sec/1024)/1024)
+            speed_in_bytes_per_sec = ((speed_in_bytes_per_sec / 1024) / 1024)
             speed_in_bytes_per_sec = round(speed_in_bytes_per_sec, 2)
             json_data = response.json()
             json_data = json.loads(json_data)
@@ -248,7 +255,8 @@ class Client:
                 with open("downloaded_chunks/" + key, 'wb') as file:
                     file.write(value)
 
-            self.process_status_listbox.insert(tkinter.END, "***** SUCCESS : Downloaded files successfully at " + str(speed_in_bytes_per_sec) + " MB/S")
+            self.process_status_listbox.insert(tkinter.END, "***** SUCCESS : Downloaded files successfully at " + str(
+                speed_in_bytes_per_sec) + " MB/S")
             self.process_status_listbox.insert(tkinter.END, "***** Enter the hashes to decrypt the file : ")
 
         else:

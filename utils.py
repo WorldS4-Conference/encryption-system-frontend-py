@@ -1,3 +1,4 @@
+import os
 import tkinter
 
 import requests
@@ -5,7 +6,7 @@ import requests
 from constants import base_url
 
 
-def checkTags(tags, email):
+def checkTags(tags, email, block_paths):
     url = base_url + 'api/check_tags/'
 
     hexed_tags = []
@@ -13,7 +14,9 @@ def checkTags(tags, email):
     for tag in tags:
         hexed_tags.append(tag.hex())
 
-    response = requests.post(url, data=[("tags", hexed_tags), ('email', email)])
+    filenames = [os.path.basename(path) for path in block_paths]
+
+    response = requests.post(url, data=[("tags", hexed_tags), ('email', email), ('filenames', filenames)])
     print(response.json())
     return response.json()
     # print(response)
